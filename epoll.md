@@ -26,8 +26,12 @@ fcntl:
 * fcntl(fd, F_SETFL, flag);
 设置为非阻塞之后，epoll_wait返回之后将缓冲区的全部数据都读出
 ```C
-while((len = recv()) > 0){
+char buf[1024] = {0};
+int len;
+while((len = recv(fd, buf, sizeof(buf), 0)) > 0){
   // 得到数据
+  write(STDOUT_FILENO, buf, len);
+  send(fd, buf, len, 0);
 }
 if(len == 0) {
   // 客户端断开连接
