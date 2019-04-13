@@ -10,9 +10,12 @@
 - 内核编程时既不能访问C库也不能访问标准的C头文件
 - 内核编程时必须使用GNU C
 - 内核编程时缺乏像用户空间那样的内存保护机制
+  - 内核中的内存不分页
 - 内核编程时难以执行浮点运算
 - 内核给每个进程只有一个很小的定长堆栈
+  - 内核栈大小为两页，32位机器-8KB，64位机器-16KB
 - 由于内核支持异步中断、抢占和SMP，因此必须时刻注意同步和并发
+  - 解决竞争常用的办法是自旋锁或者信号量
 - 要考虑可移植性的重要性
 
 #### GNU C
@@ -23,9 +26,13 @@
   - 定义一个内联函数需要使用static作为关键字，并用inline限定它
     - static inline void test(typename x)
 - 内联汇编
-  - 
-  - ```c
-  - unsigned int low, high;
-  - asm volatile("rdtsc" : "=a" (low), "=d" (high));
-  - ```
+  - 可以使用asm()指令嵌入汇编代码
   - 对时间要求严格的地方可以使用汇编  
+  - 下面这段代码执行tdtsc指令，返回时间戳（tsc）寄存器的值：
+ ```c
+ unsigned int low, high;
+ asm volatile("rdtsc" : "=a" (low), "=d" (high));
+ ```
+ - 分支声明
+   - likely()
+   - unlikely()
