@@ -22,3 +22,4 @@
 - 任务队列
   - 存放进程的列表
   - 双向循环链表
+![task-struct](res/3-1-task-struct.png)
