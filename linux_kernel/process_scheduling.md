@@ -128,3 +128,45 @@ wake_up()函数唤醒指定等待队列上的所有进程。调用try_to_wake_up
 2. 调用switch_to()，该函数负责从上一个进程的**处理器状态**切换到新进程的处理器状态。这包括保存、恢复栈信息和寄存器信息。
 
 ![sleep-wakeup](./res/sleep-wakeup.png)
+
+`need_resched`标志，表明是否重新执行一次调度，表明有其他进程应当被运行了，要尽快调用调度程序。
+
+- set_tsk_need_resched() 设置指定进程中的need_resched标志
+- clear_tsk_need_resched() 清除指定进程中的need_resched标志
+- need_resched() 检查标志的值，如果被设置就返回真，否则返回假
+
+#### 用户抢占
+发生时机：
+- 从系统调用返回用户空间是
+- 从中断处理返回用户控件时
+
+#### 内核抢占
+`preempt_count`，初始为0 ，每当使用锁，其值就会加1，释放锁是值减1。当为0时，内核就可以执行抢占。
+从中断返回内核空间时，检查need_resched与preempt_count，来检查是否有更重要的进程需要执行并且可以安全地抢占。
+
+发生时机：
+- 中断处理程序正在执行，且返回内核空间之前
+- 内核代码再一次具有可抢占性的时候。
+- 如果内核中的任务显式地调用schedule()
+- 如果内核中的任务阻塞（这同样也会导致调用schedule()）
+
+### 实时调度策略
+1. SCHED_FIFO
+2. SCHED_RR
+
+普通非实时的策略：
+- SCHED_NORMAL
+
+`SCHED_FIFO` 
+- 不使用时间片，可以一直执行下去直到阻塞或者显式释放处理器。
+- 只有更高优先级的FIFO或者RR任务才能抢占FIFO任务
+- 优先级高于SCHED_NORMAL。
+
+`SCHED_RR`
+- 带有时间片的FIFO，时间到了就要释放CPU。
+
+### 与调度相关的系统调用
+
+![sleep-wakeup](./res/schedule-call.png)
+
+通过sched_yield()系统调用，显式地将处理器时间让给其他等待执行进程的机制。
