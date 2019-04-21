@@ -9,7 +9,7 @@
 ### 5.2 API、POSIX和C库
 一般应用程序不会直接调用系统调用，而是通过一层API。
 
-![printf-syscall](res/sys-call-printf.png)
+![printf-syscall](res/syscall-printf.png)
 
 **提供机制而不是策略**
 
