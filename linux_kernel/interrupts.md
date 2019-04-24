@@ -35,3 +35,30 @@
   - 处理和操作数据包的其他工作随后在下半部进行。
 
 ### 7.4 注册中断处理程序
+驱动程序通过`request_irq()`函数注册一个中断处理程序，并且激活给定的中断线。
+```c++
+int request_irq(unsigned int irq,       // 中断号，可能是固定的或者需要动态获取的
+                irq_handler_t handler,  // 操作系统接到中断时被触发的处理函数
+                unsigned long flags,    // 可以设置为不允许其他中断发生；具体看7.4.1
+                const char *name,       // 设备的ASCII文本名，如keyboard
+                void *dev               // 共享中断线时，用于指定特定设备
+                )
+```
+#### 7.4.1 中断处理程序标志
+- flags
+  - `IRQF_DISABLED` 禁用所有其他中断，一般不设置
+  - `IRQF_SAMPLE_RANDOM` 帮助产生更真的随机数
+  - `IRQF_TIMER` 为系统的定时器中断准备
+  - `IRQF_SHARED` 多个中断程序共享中断线
+
+中断注册函数成功会返回0，错误返回非0，如`-EBUSY`。该函数会睡眠，因此要注意不能在不允许阻塞的代码中调用该函数。
+
+#### 7.4.2 中断例子
+
+
+#### 7.4.3 释放中断处理程序
+`void free_irq(unsinged int irq, void *dev)`
+
+若中断线是共享的，则删除对应处理程序；若不是共享的，则删除整条中断线。
+
+![reg-free](res/interrupts-handler-reg-free.png)
