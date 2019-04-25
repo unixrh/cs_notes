@@ -62,3 +62,10 @@ int request_irq(unsigned int irq,       // 中断号，可能是固定的或者�
 若中断线是共享的，则删除对应处理程序；若不是共享的，则删除整条中断线。
 
 ![reg-free](res/interrupts-handler-reg-free.png)
+
+### 7.5 编写中断处理程序
+`static irqreturn_t intr_handler(int irq, void *dev)`
+
+返回值可能为
+- `IRQ_NONE`
+- `IRQ_HANDLED`。
