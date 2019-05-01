@@ -100,4 +100,79 @@ struct tasklet_struct {
 - worker thread
 
 1. 表示线程的数据结构
+```c++
+struct workqueue_struct {
+    struct cpu_workqueue_struct cpu_wq[NR_CPUS]; // 每个处理器每个工作者线程都对应一个
+    struct list_head list;
+    const char *name;
+    int singlethread;
+    int freezeable;
+    int rt;
+}
+```
+```c++
+struct cpu_workqueue_struct {
+    spinlock_t lock;   // 锁保护这种结构
+    struct list_head worklist; // 工作列表
+    wait_queue_head_t more_work;
+    struct work_struct *current_struct;
+    struct workqueue_struct *wq; // 关联工作队列结构
+    task_t *thread;    // 关联线程
+}
+```
 2. 表示工作的数据结构
+```c++
+struct work_struct {
+    atomic_long_t data;
+    struct list_head entry;
+    work_func_t func;
+}
+```
+工作者线程都是使用普通的内核线程实现的，需要执行`worker_thread()`函数。初始化后开始死循环执行，当需要操作时就被唤醒，它执行所有工作，直到所有都处理完成后就继续休眠。
+```c++
+for(;;) {
+    prepare_to_wait(&cwq->more_work, &wait, TASK_INTERRUPTIBLE);
+    if(list_empty(&cwq->worklist));
+        schedule();
+    finish_wait(&cwq->more_work, &wait);
+    run_workqueue(cwq);
+}
+```
+3. 工作队列实现机制总结
+
+![work-queue](res/workqueue.png)
+
+#### 8.4.2 使用工作队列
+
+1. 创建推后的工作
+   1. `DECLARE_WORK(name, void (*func)(void *), void *data)`
+2. 工作队列处理函数
+   1. `void work_handler(void *data)`
+   2. 运行在进城费上下文中，允许响应中断，不持有任何锁。
+   3. 不能访问用户空间，因为内核线程在用户空间没有相关的内存映射。
+3. 对工作进行调度
+   1. `schedule_work(&work) // 马上调度`
+   2. `schedule_delayed_work(&work, delay)`
+4. 刷新操作
+5. 创建新的工作队列
+
+### 8.5 下半部机制的选择
+- 选项：软中断、tasklet、工作队列
+- tasklet基于软中断实现，工作队列基于内核线程实现
+- 时间要求高，执行频率高 软中断
+- 接口简单 - tasklet
+- tasklet不能并发运行
+- 如果需要把任务推后到进程上下文中完成 - 工作队列
+- 工作队列最易用
+
+![mechanism](res/mechanism.png)
+
+需要考虑两个因素：
+- 有休眠的需要吗？ yes - 工作队列  no - tasklet
+- 专注于性能提升？ 考虑软中断
+
+### 8.6 在下半部之间加锁
+数据共享的时候要加锁
+
+### 8，7 禁止下半部
+为了保证共享数据的安全，一般先拿到一个锁然后再禁止下半部的处理。
