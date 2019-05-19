@@ -36,6 +36,66 @@ timeout：
 - 返回已准备好的文件描述符 
 ```
 
+#### 伪代码
+```c
+// 假设有ABCDEFG六个客户端连接，连接描述符分别为3,4,5,100,102,103
+fd_set reads; // 用户空间的文件描述符列表
+FD_SET(3, &reads);
+select(103+1, &reads, NULL, NULL, NULL); // 拷贝一份到内核空间
+
+内核检测文件描述符对应缓冲区的变化，将它对应的fd_set（内核）对应位置的状态进行修改；最后用修改过的表拷贝覆盖用户空间的表
+```
+#### select代码
+```c
+int main() {
+    int lfd = socket();
+    bind();
+    listen();
+    // 创建一个文件描述符表
+    fd_st reads, temp; // 留一个reads保留监听备份，temp用来传给select，它最终会被内核的表覆盖
+    fd_zero(&reads); // 清空
+    // 监听描述符lfd加入到读集合中
+    fd_set(lfd, &reads);
+    int maxfd = lfd;
+    while(1) {
+        // 委托内核监听这一组文件描述符
+        temp = reads;
+        int ret = select(maxfd+1, &temp, NULL, NULL, NULL);
+
+        // 判断是不是监听描述符
+        if(fd_isset(lfd, &temp)) {
+            // 接受新连接
+            int cfd = accept();
+            // 将cfd加入到读集合中
+            fd_set(cfd, &reads);
+            // 更新maxfd
+            maxfd = maxfd < cfd ? cfd:maxfd;
+        }
+        // 判断是客户端发送数据
+        for(int i = lfd+1; i <= maxfd; i++) {
+            if(fd_isset(i, &temp)) {
+                int len = read();
+                if(len == 0) { // 客户端断开连接
+                    // cfd 从集合中删除
+                    fd_clr(i, &reads);
+                }
+            }
+        }
+    }
+}
+```
+#### 优缺点分析
+- 优点
+  - 跨平台
+- 缺点
+  - 每次调用select，都需要把fd集合从用户态拷贝到内核态，开销较大
+  - 每次调用都需要在内核遍历传递进来的所有fd，这个开销很大
+  - select支持的文件描述符数量太小了，默认为1024，因为是数组实现的
+
+### poll
+可以超过1024，因为内部是链表实现的。
+
+`int poll(struct pollfd *fd, nfds_t, nfds, int timeout);`
 
 ### epoll
 内核不仅告诉有几个，同时会告诉是哪几个。
