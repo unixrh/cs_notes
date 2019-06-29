@@ -13,3 +13,6 @@
 - 2.第三次：server调用close()请求， 给client发送 FIN seq=y+1 server进入 LAST_ACK
 - 3.第四次：client进入TIME_WAIT状态，然后给server发ACK=y+2，server关闭进程
 - 4.client 会等待1min左右（2MSL）的时间才最终断开，为了给server时间来接受信息并且关闭进程
+
+### 图解
+![tcp](res/tcp-est-finish.png)
